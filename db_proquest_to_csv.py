@@ -17,6 +17,8 @@ joined_postupload = ('etd-06182004-122626', 'etd-09012004-114224', 'etd-0327102-
                      'etd-0903103-141852', )
 
 
+"""  Scripts for scrutinizing the dataset """
+
 def list_all_sheets(workbook):
     # non-essential sanity check function
     sheets = [sheet for sheet in available_wb.get_sheet_names()]
@@ -126,7 +128,10 @@ def is_catalog_superset_of_database(catalog_sheet, main_sheet):
     return outside_uris
 
 
-def parse_workbook(workbook_name):
+""" Scripts for creating output """
+
+
+def read_workbook(workbook_name):
     sourcepath = 'data/databasetables'
     filename = 'prod_etd_{}_database.xlsx'.format(workbook_name)
     fullpath = os.path.join(sourcepath, filename)
@@ -340,18 +345,39 @@ def organize_advisors(advisors_sheet, urn):
     return sorted_advisors
 
 
-def 
+def build_csv(main_sheet, catalog_sheet, filenames_sheet, keywords_sheet, advisors_sheet):
+    csv_data = []
 
-available_wb = parse_workbook('available')
-submitted_wb = parse_workbook('submitted')
-withheld_wb = parse_workbook('withheld')
+    csvfieldnames = ["f_name", 'm_name', 'l_name', 'dv1_name', 'adv1_title', "adv1_email", 'filenam', 'department']
+    csv_data.append(csvfieldnames)
+    for urn in main_sheet:
+        sorted_advisors = organize_advisors(advisors_sheet, urn)
+        if urn in filenames_sheet:
+            filename = filenames_sheet[urn][0].filename
+        else:
+            filename = ''
+        csv_data.append([main_sheet[urn].first_name,
+                         main_sheet[urn].middle_name,
+                         main_sheet[urn].last_name,
+                         sorted_advisors[0].advisor_name,
+                         sorted_advisors[0].advisor_title,
+                         sorted_advisors[0].advisor_email,
+                         filename,
+                         main_sheet[urn].department])
+    print(csv_data)
+    csv_writer(csv_data, '../../trash.csv')
 
-# merges the matching sheets from all 3 workbooks into one datastructure per sheet-type.
-main_sheet = parse_main_sheet()
-catalog_sheet = parse_catalog_sheet()
-filenames_sheet = parse_filename_sheet()
-keywords_sheet = parse_keyword_sheet()
-advisors_sheet = parse_advisors_sheet()
 
-# show_combinations_of_advisors(advisors_sheet)
-# find_legacy_school_names(main_sheet)
+if __name__ == '__main__':
+    available_wb = read_workbook('available')
+    submitted_wb = read_workbook('submitted')
+    withheld_wb = read_workbook('withheld')
+
+    # merges the matching sheets from all 3 workbooks into one datastructure per sheet-type.
+    main_sheet = parse_main_sheet()
+    catalog_sheet = parse_catalog_sheet()
+    filenames_sheet = parse_filename_sheet()
+    keywords_sheet = parse_keyword_sheet()
+    advisors_sheet = parse_advisors_sheet()
+
+    build_csv(main_sheet, catalog_sheet, filenames_sheet, keywords_sheet, advisors_sheet)
